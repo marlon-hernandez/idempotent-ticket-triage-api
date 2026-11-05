@@ -1,8 +1,8 @@
 from contextlib import asynccontextmanager
 from typing import Annotated
 
-from fastapi import Depends, FastAPI, HTTPException, status
-from sqlalchemy.exc import SQLAlchemyError
+from fastapi import Depends, FastAPI, Header, HTTPException, status
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from database import Base, engine, get_db
@@ -18,7 +18,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Tickets API",
-    version="1.0.0",
+    version="1.1.0",
     lifespan=lifespan,
 )
 
@@ -31,14 +31,27 @@ app = FastAPI(
 )
 def create_ticket(
     ticket_in: TicketCreate,
+    idempotency_key: Annotated[
+        str,
+        Header(alias="Idempotency-Key", min_length=1, max_length=255),
+    ],
     db: Annotated[Session, Depends(get_db)],
 ) -> Ticket:
-    new_ticket = Ticket(text=ticket_in.text)
+    new_ticket = Ticket(
+        text=ticket_in.text,
+        idempotency_key=idempotency_key,
+    )
     try:
         db.add(new_ticket)
         db.commit()
         db.refresh(new_ticket)
         return new_ticket
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Duplicate Idempotency-Key '{idempotency_key}'.",
+        ) from exc
     except SQLAlchemyError as exc:
         db.rollback()
         raise HTTPException(

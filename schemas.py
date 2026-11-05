@@ -16,6 +16,7 @@ class TicketCreate(BaseModel):
 
 class TicketResponse(BaseModel):
     id: int
+    idempotency_key: str
     text: str
     created_at: datetime
 
