@@ -1,13 +1,14 @@
 from contextlib import asynccontextmanager
 from typing import Annotated
 
-from fastapi import Depends, FastAPI, Header, HTTPException, status
+from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, status
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from database import Base, engine, get_db
-from models import Ticket
+from models import Ticket, TicketStatus
 from schemas import TicketCreate, TicketResponse
+from tasks import process_ticket_task
 
 
 @asynccontextmanager
@@ -18,7 +19,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Tickets API",
-    version="1.1.0",
+    version="1.2.0",
     lifespan=lifespan,
 )
 
@@ -26,11 +27,12 @@ app = FastAPI(
 @app.post(
     "/tickets",
     response_model=TicketResponse,
-    status_code=status.HTTP_201_CREATED,
+    status_code=status.HTTP_202_ACCEPTED,
     tags=["Tickets"],
 )
 def create_ticket(
     ticket_in: TicketCreate,
+    background_tasks: BackgroundTasks,
     idempotency_key: Annotated[
         str,
         Header(alias="Idempotency-Key", min_length=1, max_length=255),
@@ -40,12 +42,12 @@ def create_ticket(
     new_ticket = Ticket(
         text=ticket_in.text,
         idempotency_key=idempotency_key,
+        status=TicketStatus.PENDING.value,
     )
     try:
         db.add(new_ticket)
         db.commit()
         db.refresh(new_ticket)
-        return new_ticket
     except IntegrityError as exc:
         db.rollback()
         raise HTTPException(
@@ -58,6 +60,9 @@ def create_ticket(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to persist ticket.",
         ) from exc
+
+    background_tasks.add_task(process_ticket_task, new_ticket.id)
+    return new_ticket
 
 
 @app.get(
