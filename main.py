@@ -39,9 +39,16 @@ def create_ticket(
     ],
     db: Annotated[Session, Depends(get_db)],
 ) -> Ticket:
+    cleaned_key = idempotency_key.strip()
+    if not cleaned_key:
+        raise HTTPException(
+            status_code=422,
+            detail="Header 'Idempotency-Key' cannot be empty or whitespace only.",
+        )
+
     new_ticket = Ticket(
         text=ticket_in.text,
-        idempotency_key=idempotency_key,
+        idempotency_key=cleaned_key,
         status=TicketStatus.PENDING.value,
     )
     try:
@@ -52,7 +59,7 @@ def create_ticket(
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Duplicate Idempotency-Key '{idempotency_key}'.",
+            detail=f"Duplicate Idempotency-Key '{cleaned_key}'.",
         ) from exc
     except SQLAlchemyError as exc:
         db.rollback()
