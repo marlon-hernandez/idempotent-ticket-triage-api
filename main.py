@@ -1,7 +1,8 @@
 from contextlib import asynccontextmanager
 from typing import Annotated
 
-from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, status
+from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Query, status
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -70,6 +71,23 @@ def create_ticket(
 
     background_tasks.add_task(process_ticket_task, new_ticket.id)
     return new_ticket
+
+
+@app.get(
+    "/tickets",
+    response_model=list[TicketResponse],
+    status_code=status.HTTP_200_OK,
+    tags=["Tickets"],
+)
+def list_tickets(
+    db: Annotated[Session, Depends(get_db)],
+    ticket_status: Annotated[TicketStatus | None, Query(alias="status")] = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+) -> list[Ticket]:
+    stmt = select(Ticket).order_by(Ticket.created_at.desc()).limit(limit)
+    if ticket_status is not None:
+        stmt = stmt.where(Ticket.status == ticket_status.value)
+    return list(db.scalars(stmt).all())
 
 
 @app.get(

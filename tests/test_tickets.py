@@ -126,3 +126,19 @@ def test_ollama_timeout_marks_ticket_failed(mock_ollama):
 
 @patch(
     "tasks.classify_ticket_with_ollama",
+    return_value="GENERAL | LOW | Question about billing cycle.",
+)
+def test_list_tickets_filter_by_status(mock_ollama):
+    client.post(
+        "/tickets",
+        headers={"Idempotency-Key": "list-key-1"},
+        json={"text": "When does my billing cycle renew?"},
+    )
+
+    completed = client.get("/tickets?status=COMPLETED")
+    assert completed.status_code == 200
+    assert len(completed.json()) == 1
+
+    failed = client.get("/tickets?status=FAILED")
+    assert failed.status_code == 200
+    assert len(failed.json()) == 0
