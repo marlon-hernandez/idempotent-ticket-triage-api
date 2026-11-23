@@ -44,7 +44,7 @@ idempotent-ticket-triage-api/
 ├── tasks.py                # Background worker and Ollama HTTP client
 ├── main.py                 # FastAPI app and route handlers
 ├── docker-compose.yml      # Local PostgreSQL 16 container setup
-├── .env                    # Default local configuration (ready out of the box)
+├── .env.example            # Environment variable template
 └── requirements.txt        # Python dependencies
 ```
 
@@ -75,9 +75,19 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2. Start the database
+### 2. Configure environment variables and database
 
-The repository includes a pre-configured `.env` file pointing to `localhost:5432/tickets_db`, so no manual `.env` creation is required. Choose whichever database setup fits your machine:
+Copy `.env.example` to `.env`:
+
+```bash
+# Linux / macOS
+cp .env.example .env
+
+# Windows (PowerShell)
+Copy-Item .env.example .env
+```
+
+Choose whichever database setup fits your machine:
 
 * **Docker Compose (PostgreSQL 16):**
   ```bash
