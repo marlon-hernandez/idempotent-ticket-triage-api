@@ -17,5 +17,22 @@ services:
       timeout: 5s
       retries: 5
 
+  api:
+    build: .
+    container_name: tickets_api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@postgres:5432/tickets_db
+      OLLAMA_API_URL: http://host.docker.internal:11434/api/generate
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2}
+      OLLAMA_TIMEOUT: ${OLLAMA_TIMEOUT:-30}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
 volumes:
   postgres_data:

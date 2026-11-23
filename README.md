@@ -43,14 +43,30 @@ idempotent-ticket-triage-api/
 ├── schemas.py              # Pydantic v2 request and response models
 ├── tasks.py                # Background worker and Ollama HTTP client
 ├── main.py                 # FastAPI app and route handlers
-├── docker-compose.yml      # Local PostgreSQL 16 container setup
+├── Dockerfile              # Container image for the FastAPI service
+├── docker-compose.yml      # Full stack setup (FastAPI + PostgreSQL 16)
 ├── .env.example            # Environment variable template
 └── requirements.txt        # Python dependencies
 ```
 
 ## Local Setup
 
-### Prerequisites
+### Quick Start with Docker Compose (Recommended)
+
+Run the entire stack (FastAPI + PostgreSQL 16) without creating a local virtual environment:
+
+```bash
+git clone https://github.com/marlon-hernandez/idempotent-ticket-triage-api.git
+cd idempotent-ticket-triage-api
+cp .env.example .env
+docker compose up --build
+```
+
+The API will be available at `http://127.0.0.1:8000` (Swagger UI at `http://127.0.0.1:8000/docs`). Make sure Ollama is running locally with `llama3.2` pulled (`ollama pull llama3.2`).
+
+### Manual Local Setup (Without Docker)
+
+#### Prerequisites
 * Python 3.10+
 * PostgreSQL 14+ (via Docker Compose or a local installation) — or use the built-in SQLite option in `.env`
 * [Ollama](https://ollama.com/) running locally
