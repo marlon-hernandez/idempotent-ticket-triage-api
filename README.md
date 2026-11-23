@@ -1,5 +1,7 @@
 # Idempotent Ticket Triage API
 
+[![CI](https://github.com/marlon-hernandez/idempotent-ticket-triage-api/actions/workflows/ci.yml/badge.svg)](https://github.com/marlon-hernandez/idempotent-ticket-triage-api/actions/workflows/ci.yml)
+
 REST service built with FastAPI, SQLAlchemy 2.0, and PostgreSQL for ingesting support tickets with database-level idempotency and asynchronous ticket classification via a local Ollama model.
 
 ## Architecture
